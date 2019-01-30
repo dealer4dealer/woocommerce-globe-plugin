@@ -4,7 +4,7 @@ defined('ABSPATH') || exit;
 
 class Globe
 {
-    private          $_version         = '1.0.0';
+    private          $_version         = '1.0.1';
     protected static $_instance        = null;
     protected static $_productInstance = null;
 

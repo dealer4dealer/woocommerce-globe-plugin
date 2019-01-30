@@ -4,7 +4,7 @@ include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
    Plugin Name: globe Rest API extension
    Plugin URI: http://www.dealer4dealer.nl
    description: Extend WC Rest API to support globe requests
-   @Version: 1.0.0
+   @Version: 1.0.1
    @Author: Dealer4Dealer
    Author URI: http://www.dealer4dealer.nl
    Requires at least: 4.7.5
