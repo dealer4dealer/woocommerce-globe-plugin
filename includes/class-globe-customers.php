@@ -74,7 +74,7 @@ class Globe_Customers extends WC_REST_Customers_Controller
 
     public function get_items($request)
     {
-        $date_modified = $request['date_modified'] ?? 0;        
+        $date_modified = $request['date_modified'] ?: 0;
         
         $prepared_args = array();
         $prepared_args['exclude'] = $request['exclude'];

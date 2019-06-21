@@ -38,7 +38,7 @@ class Globe_User_Query extends WP_User_Query
 
             INNER JOIN (
             SELECT user_id, meta_key, meta_value
-            FROM wp_usermeta AS meta1
+            FROM {$wpdb->usermeta} AS meta1
             WHERE meta1.meta_key = %s
             ) as meta1 on users.ID = meta1.user_id 
 
@@ -48,7 +48,7 @@ class Globe_User_Query extends WP_User_Query
         ORDER BY %s ASC
         ";
 
-        $cap = $wpdb->get_blog_prefix( $blog_id ) . 'capabilities';
+        $cap = $wpdb->get_blog_prefix() . 'capabilities';
         $key = 'date_modified';
         
 
@@ -61,6 +61,7 @@ class Globe_User_Query extends WP_User_Query
 			$this->results = $wpdb->get_col( $this->request );
 		}
 
+		return $this->results;
 		if ( isset( $qv['count_total'] ) && $qv['count_total'] )
 			$this->total_users = (int) $wpdb->get_var( apply_filters( 'found_users_query', 'SELECT FOUND_ROWS()' ) );
 
