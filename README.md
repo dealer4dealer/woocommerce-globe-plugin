@@ -2,7 +2,7 @@
 Tags: woocommerce, connect, exact, exact globe, xcore, d4d, dealer4dealer, globe
 Requires at least: 4.7.5
 Tested up to: 4.9.8
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: The MIT License (MIT)
 
 This module extends the api of Woocommerce and is needed for our Globe connector. For more information or support see http://www.dealer4dealer.nl.
