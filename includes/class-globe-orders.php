@@ -40,36 +40,15 @@ class Globe_Orders extends WC_REST_Orders_Controller
         });
     }
 
-    public function get_items($request)
-    {
-        $request['after'] = $request['date_modified'];
-
-        add_filter('posts_where', function ($query) {   
-            $query = str_replace('post_date', 'post_modified', $query);                
-            return $query;
-        }, 10, 1);
-
-       return parent::get_items($request);
-    }
-
-    public function get_objects($query_args)
-    {    
-        $query  = new WP_Query();
-        $result = $query->query( $query_args );
-
-        $total_posts = $query->found_posts;
-        if ( $total_posts < 1 ) {
-          // Out-of-bounds, run the query again without LIMIT for total count.
-          unset( $query_args['paged'] );
-          $count_query = new WP_Query();
-          $count_query->query( $query_args );
-          $total_posts = $count_query->found_posts;
-        }
-
-        return array(
-          'objects' => array_map( array( $this, 'get_object' ), $result ),
-          'total'   => (int) $total_posts,
-          'pages'   => (int) ceil( $total_posts / (int) $query->query_vars['posts_per_page'] ),
-        );
-    }
+    /**
+	 * Set alternate default values
+	 */
+	public function get_collection_params() {
+		$params = parent::get_collection_params();
+		$params['per_page']['default']      = 50;
+		$params['order']['default']         = 'asc';
+		$params['orderby']['default']       = 'modified';
+		$params['dates_are_gmt']['default'] = true;
+		return $params;
+	}
 }

@@ -4,7 +4,7 @@ include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
    Plugin Name: globe Rest API extension
    Plugin URI: http://www.dealer4dealer.nl
    description: Extend WC Rest API to support globe requests
-   @Version: 1.0.3
+   @Version: 1.1.0
    @Author: Dealer4Dealer
    Author URI: http://www.dealer4dealer.nl
    Requires at least: 4.7.5
@@ -38,6 +38,15 @@ function run_globe()
         return Globe::instance();
     }
 }
+
+add_action(
+    'before_woocommerce_init',
+    function() {
+        if (class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+        }
+    }
+);
 
 function globe_check_woocommerce() {
     ?>
