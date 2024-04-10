@@ -72,96 +72,57 @@ class Globe_Customers extends WC_REST_Customers_Controller
         });
     }
 
+    /**
+     * @param WP_REST_Request $request
+     * @return array|object|WP_Error|WP_REST_Response|null
+     * @throws Exception
+     */
     public function get_items($request)
     {
-        $date_modified = $request['date_modified'] ?: 0;
+        global $wpdb;
 
+        /**
+         * If e-mail is given with the request, let woocommerce handle it.
+         */
         if ($request['email']) {
             return parent::get_items($request);
         }
 
-        $prepared_args = array();
-        $prepared_args['exclude'] = $request['exclude'];
-        $prepared_args['include'] = $request['include'];
-        $prepared_args['order']   = $request['order'];
-        $prepared_args['number']  = $request['per_page'];
-        if ( ! empty( $request['offset'] ) ) {
-            $prepared_args['offset'] = $request['offset'];
-        } else {
-            $prepared_args['offset'] = ( $request['page'] - 1 ) * $prepared_args['number'];
-        }
-        $orderby_possibles = array(
-            'id'              => 'ID',
-            'include'         => 'include',
-            'name'            => 'display_name',
-            'registered_date' => 'registered',
-        );
-        $prepared_args['orderby'] = $orderby_possibles[ $request['orderby'] ];
-        $prepared_args['search']  = $request['search'];
+        $limit                = 50;
+        $timezoneOffset       = wc_timezone_offset();
+        $filter_date_modified = '2001-01-01 00:00:00';
 
-        if ( '' !== $prepared_args['search'] ) {
-            $prepared_args['search'] = '*' . $prepared_args['search'] . '*';
+        if (isset($request['limit']) && $request['limit']) {
+            $limit = (int)$request['limit'];
         }
 
-        // Filter by email.
-        if ( ! empty( $request['email'] ) ) {
-            $prepared_args['search']         = $request['email'];
-            $prepared_args['search_columns'] = array( 'user_email' );
+        if (isset($request['date_modified']) && $request['date_modified']) {
+            $filter_date_modified = $request['date_modified'];
         }
+        $value = str_ireplace('T', ' ', $filter_date_modified);
 
-        // Filter by role.
-        if ( 'all' !== $request['role'] ) {
-            $prepared_args['role'] = $request['role'];
-        }
+        $wp_users_table = $wpdb->users;
+        $wp_user_meta   = $wpdb->usermeta;
 
-        $prepared_args = apply_filters( 'woocommerce_rest_customer_query', $prepared_args, $request );
+        $q = "
+            SELECT ID as id, user_registered as date_created, 
+                CASE 
+                    WHEN meta_value IS NOT NULL THEN DATE_SUB(FROM_UNIXTIME(meta_value), INTERVAL %s SECOND)
+                    ELSE user_registered 
+                END AS date_modified
+            FROM {$wp_users_table} AS users 
+            LEFT JOIN (
+                SELECT user_id, meta_key, meta1.meta_value
+                FROM {$wp_user_meta} AS meta1 
+                WHERE meta1.meta_key = 'last_update'
+            ) AS meta ON (users.ID = meta.user_id) 
+            HAVING date_modified > %s
+            ORDER BY date_modified ASC LIMIT %d
+        ";
 
+        $sql     = $wpdb->prepare($q, array($timezoneOffset, $value, $limit));
+        $results = $wpdb->get_results($sql, ARRAY_A);
 
-        $query = new Globe_User_Query( $prepared_args );
-        $query->setDateModified($date_modified);
-        $query->query();
-
-        $users = array();
-        foreach ( $query->results as $user ) {
-            $data = $this->prepare_item_for_response( $user, $request );
-            $users[] = $this->prepare_response_for_collection( $data );
-        }
-
-        $response = rest_ensure_response( $users );
-
-        // Store pagination values for headers then unset for count query.
-        $per_page = (int) $prepared_args['number'];
-        $page = ceil( ( ( (int) $prepared_args['offset'] ) / $per_page ) + 1 );
-
-        $prepared_args['fields'] = 'ID';
-
-        $total_users = $query->get_total();
-        if ( $total_users < 1 ) {
-            // Out-of-bounds, run the query again without LIMIT for total count.
-            unset( $prepared_args['number'] );
-            unset( $prepared_args['offset'] );
-            $count_query = new WP_User_Query( $prepared_args );
-            $total_users = $count_query->get_total();
-        }
-        $response->header( 'X-WP-Total', (int) $total_users );
-        $max_pages = ceil( $total_users / $per_page );
-        $response->header( 'X-WP-TotalPages', (int) $max_pages );
-
-        $base = add_query_arg( $request->get_query_params(), rest_url( sprintf( '/%s/%s', $this->namespace, $this->rest_base ) ) );
-        if ( $page > 1 ) {
-            $prev_page = $page - 1;
-            if ( $prev_page > $max_pages ) {
-                $prev_page = $max_pages;
-            }
-            $prev_link = add_query_arg( 'page', $prev_page, $base );
-            $response->link_header( 'prev', $prev_link );
-        }
-        if ( $max_pages > $page ) {
-            $next_page = $page + 1;
-            $next_link = add_query_arg( 'page', $next_page, $base );
-            $response->link_header( 'next', $next_link );
-        }
-
-        return $response;
+        return $results;
     }
 }
